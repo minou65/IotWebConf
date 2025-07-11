@@ -89,6 +89,237 @@ to ESP32. There are two major problems.
   - ESP8266 uses specific naming for it's classes (e.g. ESP8266WebServer). However, ESP32 uses a more generic naming (e.g. WebServer). The idea here is to use the generic naming hoping that ESP8266 will adopt these "standards" sooner or later.
   - ESP32 does not provide an HTTPUpdateServer implementation. So in this project we have implemented one. Whenever ESP32 provides an official HTTPUpdateServer, this local implementation will be removed.
 
+## Input parameters
+
+IotWebConf provides various parameter types for creating configuration forms. Each parameter type is designed for specific use cases and renders appropriate HTML input fields.
+
+### Base Classes
+
+#### ConfigItem
+Abstract base class for all configuration items. Provides core functionality for:
+- EEPROM storage and loading
+- HTML rendering
+- Value validation
+- Debug output
+- JSON serialization (if enabled)
+
+#### ParameterGroup
+Groups related parameters together in fieldsets for better organization.
+
+```cpp
+ParameterGroup group("groupId", "Group Label");
+```
+
+#### Parameter
+Base class for all input parameters with common properties:
+- `label` - Display label in the configuration form
+- `id` - Unique identifier for HTML and storage
+- `valueBuffer` - Buffer to store the parameter value
+- `length` - Buffer length
+- `defaultValue` - Default value on first startup
+- `errorMessage` - Validation error message
+- `visible` - Controls parameter visibility
+
+### Available Parameter Types
+
+#### TextParameter
+Standard text input field for string values.
+
+```cpp
+TextParameter textParam(
+    "Parameter Label",     // label
+    "paramId",            // id
+    valueBuffer,          // value buffer
+    32,                   // buffer length
+    "default value",      // default value (optional)
+    "placeholder text",   // placeholder (optional)
+    "custom HTML attrs"   // custom HTML attributes (optional)
+);
+```
+
+**Properties:**
+- `placeholder` - Text displayed in empty input field
+- `customHtml` - Additional HTML attributes for customization
+
+#### PasswordParameter
+Password input field with special handling - only updates EEPROM when a new value is provided.
+
+```cpp
+PasswordParameter passwordParam(
+    "Password",
+    "password",
+    passwordBuffer,
+    32,
+    "defaultPass",                    // default value (optional)
+    "Enter password",                 // placeholder (optional)
+    "ondblclick=\"pw(this.id)\""     // custom HTML (optional)
+);
+```
+
+**Features:**
+- Masked input field (type="password")
+- Double-click to reveal password (with default customHtml)
+- Only saves to EEPROM when new value provided
+- Limited to IOTWEBCONF_PASSWORD_LEN characters
+
+#### NumberParameter
+Numeric input field with number validation.
+
+```cpp
+NumberParameter numberParam(
+    "Port Number",
+    "port",
+    portBuffer,
+    6,
+    "8080",              // default value (optional)
+    "Enter port",        // placeholder (optional)
+    "min='1' max='65535'" // custom HTML for validation (optional)
+);
+```
+
+**Features:**
+- HTML5 number input type
+- Browser-native numeric validation
+- Supports min/max attributes via customHtml
+
+#### CheckboxParameter
+Checkbox input for boolean values.
+
+```cpp
+CheckboxParameter checkboxParam(
+    "Enable Feature",
+    "enable",
+    enableBuffer,
+    10,
+    true                 // default checked state
+);
+```
+
+**Features:**
+- Value is either empty or "selected"
+- `isChecked()` method returns boolean state
+- Special form handling (unchecked boxes don't send values)
+
+#### SelectParameter
+Dropdown selection from predefined options.
+
+```cpp
+// Define options
+const char* optionValues = "opt1\0opt2\0opt3";
+const char* optionNames = "Option 1\0Option 2\0Option 3";
+
+SelectParameter selectParam(
+    "Select Option",
+    "option",
+    optionBuffer,
+    10,
+    optionValues,        // values to store
+    optionNames,         // display names
+    3,                   // option count
+    20,                  // max name length
+    "opt1"              // default value (optional)
+);
+```
+
+**Features:**
+- Dropdown HTML SELECT element
+- Separate values and display names
+- Configurable option count and name length
+
+#### DateParameter
+HTML5 date picker input.
+
+```cpp
+DateParameter dateParam(
+    "Select Date",
+    "date",
+    dateBuffer,
+    12,
+    "2023-01-01"        // default value (optional)
+);
+```
+
+**Features:**
+- Native browser date picker
+- ISO date format (YYYY-MM-DD)
+- Calendar popup interface
+
+#### TimeParameter
+HTML5 time picker input.
+
+```cpp
+TimeParameter timeParam(
+    "Select Time",
+    "time",
+    timeBuffer,
+    8,
+    "12:00"             // default value (optional)
+);
+```
+
+**Features:**
+- Native browser time picker
+- 24-hour format (HH:MM)
+- Time selection interface
+
+### Parameter Organization
+
+#### Adding Parameters to Groups
+```cpp
+ParameterGroup mainGroup("main", "Main Settings");
+mainGroup.addItem(&textParam);
+mainGroup.addItem(&passwordParam);
+mainGroup.addItem(&numberParam);
+```
+
+#### Visibility Control
+```cpp
+// Hide parameter conditionally
+textParam.visible = false;
+```
+
+### Advanced Features
+
+#### Custom HTML Attributes
+All text-based parameters support custom HTML attributes:
+```cpp
+TextParameter customParam(
+    "Custom Field",
+    "custom",
+    buffer,
+    32,
+    nullptr,
+    "placeholder",
+    "required pattern='[A-Za-z]+' title='Letters only'"
+);
+```
+
+#### Validation
+Parameters can have error messages set for validation feedback:
+```cpp
+if (strlen(textParam.valueBuffer) < 3) {
+    textParam.errorMessage = "Minimum 3 characters required";
+}
+```
+
+#### JSON Support
+When `IOTWEBCONF_ENABLE_JSON` is defined, parameters support JSON serialization:
+```cpp
+#ifdef IOTWEBCONF_ENABLE_JSON
+    parameter.loadFromJson(jsonObject);
+#endif
+```
+
+### Best Practices
+
+1. **Buffer Management**: Always ensure value buffers are large enough for expected values
+2. **Parameter IDs**: Use unique, descriptive IDs without spaces or special characters
+3. **Default Values**: Provide sensible defaults for better user experience
+4. **Validation**: Implement proper validation and error handling
+5. **Organization**: Group related parameters together using ParameterGroup
+6. **Security**: Use PasswordParameter for sensitive data
+
+
 ## Customizing and extending functionality
 IotWebConf is ment to be developer friendly by providing lots
 of customization options. See [HackingGuide](doc/HackingGuide.md) for
