@@ -508,12 +508,12 @@ bool IotWebConf::handleCaptivePortal(WebRequestWrapper* webRequestWrapper)
   if (!isIp(host) && !host.startsWith(thingName))
   {
 #ifdef IOTWEBCONF_DEBUG_TO_SERIAL
-    Serial.print("Request for ");
-    Serial.print(host);
-    Serial.print(" redirected to ");
-    Serial.print(webRequestWrapper->localIP());
-    Serial.print(":");
-    Serial.println(webRequestWrapper->localPort());
+    //Serial.print("Request for ");
+    //Serial.print(host);
+    //Serial.print(" redirected to ");
+    //Serial.print(webRequestWrapper->localIP());
+    //Serial.print(":");
+    //Serial.println(webRequestWrapper->localPort());
 #endif
     webRequestWrapper->sendHeader(
       "Location", String("http://") + toStringIp(webRequestWrapper->localIP()) + ":" + webRequestWrapper->localPort(), true);
