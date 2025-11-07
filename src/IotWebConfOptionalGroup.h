@@ -71,8 +71,8 @@ class OptionalParameterGroup : public ParameterGroup
 {
 public:
   OptionalParameterGroup(const char* id, const char* label, bool defaultActive);
-  bool isActive() { return this->_active; }
-  void setActive(bool active) { this->_active = active; }
+  virtual bool isActive() const { return this->_active; }
+  virtual void setActive(bool active) { this->_active = active; }
 
 protected:
   int getStorageSize() override;
