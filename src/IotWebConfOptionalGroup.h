@@ -82,6 +82,7 @@ protected:
   void loadValue(std::function<void(
     SerializationData* serializationData)> doLoad) override;
   void renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper) override;
+  bool renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper, HtmlChunkCallback outputCallback) override;
   virtual String getStartTemplate() { return FPSTR(IOTWEBCONF_HTML_FORM_OPTIONAL_GROUP_START); };
   virtual String getEndTemplate() { return FPSTR(IOTWEBCONF_HTML_FORM_OPTIONAL_GROUP_END); };
   void update(WebRequestWrapper* webRequestWrapper) override;
@@ -90,6 +91,8 @@ protected:
 private:
   bool _defaultActive;
   bool _active;
+  bool _continueRendering = false;
+
 };
 
 class ChainedParameterGroup;

@@ -110,6 +110,55 @@ void ParameterGroup::renderHtml(
       webRequestWrapper->sendContent(content);
     }
 }
+
+bool ParameterGroup::renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper, HtmlChunkCallback outputCallback) {
+	//Serial.println("ParameterGroup::renderHtml called");
+
+    ConfigItem* current_ = _currentItem ? _currentItem : this->_firstItem;
+
+    if (!_startTemplateSend && this->label != nullptr) {
+		//Serial.println("Sending start template");
+        String content_ = getStartTemplate();
+        content_.replace("{b}", this->label);
+        content_.replace("{i}", this->getId());
+        bool completed_ = outputCallback(content_.c_str(), content_.length());
+        if (!completed_) {
+            //Serial.println("Rendering interrupted during start template, saving state.");
+            return completed_;
+        }
+        _startTemplateSend = true;
+    }
+
+    while (current_ != nullptr) {
+		//Serial.print("Rendering item: "); Serial.println(current_->getId());
+        if (current_->visible) {
+            bool completed_ = current_->renderHtml(dataArrived, webRequestWrapper, outputCallback);
+            if (!completed_) {
+				//Serial.println("Rendering interrupted, saving state.");
+                _currentItem = current_;
+                return completed_;
+            }
+        }
+        current_ = current_->_nextItem;
+    }
+
+    if (this->label != nullptr) {
+        String content_ = getEndTemplate();
+        content_.replace("{b}", this->label);
+        content_.replace("{i}", this->getId());
+        bool completed_ = outputCallback(content_.c_str(), content_.length());
+        if (!completed_) {
+            //Serial.println("Rendering interrupted during end template, saving state.");
+            return completed_;
+		}
+    }
+
+     _currentItem = nullptr;
+	_startTemplateSend = false;
+	//Serial.println("ParameterGroup::renderHtml completed");
+	return true;
+}
+
 void ParameterGroup::update(WebRequestWrapper* webRequestWrapper)
 {
   ConfigItem* current = this->_firstItem;
@@ -295,8 +344,7 @@ TextParameter::TextParameter(
   this->customHtml = customHtml;
 }
 
-void TextParameter::renderHtml(
-  bool dataArrived, WebRequestWrapper* webRequestWrapper)
+void TextParameter::renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper)
 {
   String content = this->renderHtml(
     dataArrived,
@@ -304,6 +352,15 @@ void TextParameter::renderHtml(
     webRequestWrapper->arg(this->getId()));
   webRequestWrapper->sendContent(content);
 }
+
+bool TextParameter::renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper, HtmlChunkCallback outputCallback) {
+    String content = this->renderHtml(
+        dataArrived,
+        webRequestWrapper->hasArg(this->getId()),
+        webRequestWrapper->arg(this->getId()));
+    return outputCallback(content.c_str(), content.length());
+}
+
 String TextParameter::renderHtml(
   bool dataArrived, bool hasValueFromPost, String valueFromPost)
 {

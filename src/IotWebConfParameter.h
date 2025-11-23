@@ -38,6 +38,8 @@ const char IOTWEBCONF_HTML_FORM_SELECT_PARAM[] PROGMEM =
 const char IOTWEBCONF_HTML_FORM_OPTION[] PROGMEM =
   "<option value='{v}'{s}>{n}</option>\n";
 
+typedef std::function<bool(const char* data, size_t len)> HtmlChunkCallback;
+
 namespace iotwebconf
 {
 
@@ -90,7 +92,7 @@ public:
    *   The webRequestWrapper->sendContent() method should be used in the implementations.
    */
   virtual void renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper) = 0;
-
+  virtual bool renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper, HtmlChunkCallback outputCallback) = 0;
   /**
    * New value arrived from the form post. The value should be stored in the
    *   in this config item.
@@ -141,13 +143,16 @@ public:
   virtual void loadFromJson(JsonObject jsonObject) override;
 #endif
 
+  void renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper) override;
+  bool renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper, HtmlChunkCallback outputCallback) override;
+
 protected:
   int getStorageSize() override;
   void storeValue(std::function<void(
     SerializationData* serializationData)> doStore) override;
   void loadValue(std::function<void(
     SerializationData* serializationData)> doLoad) override;
-  void renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper) override;
+
   void update(WebRequestWrapper* webRequestWrapper) override;
   void clearErrorMessage() override;
   void debugTo(Stream* out) override;
@@ -163,6 +168,10 @@ protected:
   virtual String getEndTemplate() { return FPSTR(IOTWEBCONF_HTML_FORM_GROUP_END); };
 
   ConfigItem* _firstItem = nullptr;
+  ConfigItem* _currentItem = nullptr;
+  bool _startTemplateSend = false;
+  bool _continueRendering = false;
+  size_t _currentStringPos = 0;
   ConfigItem* getNextItemOf(ConfigItem* parent) { return parent->_nextItem; };
 
   friend class IotWebConf; // Allow IotWebConf to access protected members.
@@ -253,10 +262,10 @@ public:
   const char* customHtml;
 
 protected:
-  virtual String renderHtml(
-    bool dataArrived, bool hasValueFromPost, String valueFromPost);
+  virtual String renderHtml(bool dataArrived, bool hasValueFromPost, String valueFromPost);
   // Overrides
   virtual void renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper) override;
+  virtual bool renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper, HtmlChunkCallback outputCallback) override;
   virtual void update(String newValue) override;
   virtual void debugTo(Stream* out) override;
   /**
@@ -478,8 +487,7 @@ public:
   }
 
 protected:
-  virtual String renderHtml(
-      bool dataArrived, bool hasValueFromPost, String valueFromPost) override
+  virtual String renderHtml(bool dataArrived, bool hasValueFromPost, String valueFromPost) override
   {
     return TextParameter::renderHtml("time", hasValueFromPost, valueFromPost);
   };

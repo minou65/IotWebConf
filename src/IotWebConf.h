@@ -523,6 +523,11 @@ public:
   {
     return &this->_systemParameters;
   };
+
+  ParameterGroup* getCustomParameterGroup() {
+	  return &this->_customParameterGroups;
+  }
+
   Parameter* getThingNameParameter()
   {
     return &this->_thingNameParameter;
@@ -547,6 +552,14 @@ public:
   {
     return &this->_apTimeoutParameter;
   };
+
+  const char* getApPassword() const {
+      return this->_apPassword;
+  }
+
+  String getUpdateLinkHtml();
+  String getConfigVersionHtml();
+
 
   /**
    * If config parameters are modified directly, the new values can be saved by this method.
@@ -575,6 +588,8 @@ public:
   {
     return this->htmlFormatProvider;
   }
+
+  bool validateForm(WebRequestWrapper* webRequestWrapper);
 
 private:
   const char* _initialApPassword = nullptr;
@@ -648,7 +663,7 @@ private:
   void readEepromValue(int start, byte* valueBuffer, int length);
   void writeEepromValue(int start, byte* valueBuffer, int length);
 
-  bool validateForm(WebRequestWrapper* webRequestWrapper);
+
 
   void changeState(NetworkState newState);
   void stateChanged(NetworkState oldState, NetworkState newState);

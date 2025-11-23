@@ -284,6 +284,21 @@ void IotWebConf::setWifiConnectionTimeoutMs(unsigned long millis)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+String IotWebConf::getUpdateLinkHtml() {
+    if (this->_updatePath != nullptr) {
+        String pitem = htmlFormatProvider->getUpdate();
+        pitem.replace("{u}", this->_updatePath);
+        return pitem;
+    }
+    return String();
+}
+
+String IotWebConf::getConfigVersionHtml() {
+    String pitem = htmlFormatProvider->getConfigVer();
+    pitem.replace("{v}", this->_configVersion);
+    return pitem;
+}
+
 void IotWebConf::handleConfig(WebRequestWrapper* webRequestWrapper)
 {
   if (this->_state == OnLine)
@@ -335,19 +350,8 @@ void IotWebConf::handleConfig(WebRequestWrapper* webRequestWrapper)
 
     content = htmlFormatProvider->getFormEnd();
 
-    if (this->_updatePath != nullptr)
-    {
-      String pitem = htmlFormatProvider->getUpdate();
-      pitem.replace("{u}", this->_updatePath);
-      content += pitem;
-    }
-
-    // -- Fill config version string;
-    {
-      String pitem = htmlFormatProvider->getConfigVer();
-      pitem.replace("{v}", this->_configVersion);
-      content += pitem;
-    }
+	content += this->getUpdateLinkHtml();
+    content += this->getConfigVersionHtml();
 
     content += htmlFormatProvider->getEnd();
 

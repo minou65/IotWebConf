@@ -385,14 +385,21 @@ public:
     ConfigItemBridge::ConfigItemBridge(id),
     label(label) { }
 
-  virtual void renderHtml(
-    bool dataArrived, WebRequestWrapper* webRequestWrapper) override
+  virtual void renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper) override
   {
     String content = this->renderHtml(
       dataArrived,
       webRequestWrapper->hasArg(this->getId()),
       webRequestWrapper->arg(this->getId()));
     webRequestWrapper->sendContent(content);
+  }
+
+  virtual bool renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper, HtmlChunkCallback outputCallback) override {
+      String content = this->renderHtml(
+          dataArrived,
+          webRequestWrapper->hasArg(this->getId()),
+          webRequestWrapper->arg(this->getId()));
+      return outputCallback(content.c_str(), content.length());
   }
 
   const char* label;
