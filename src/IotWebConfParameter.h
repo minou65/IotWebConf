@@ -280,6 +280,8 @@ protected:
    */
   virtual String renderHtml(const char* type, bool hasValueFromPost, String valueFromPost);
 
+  size_t _lastSentPos = 0;
+
 private:
   friend class IotWebConf;
   friend class WifiParameterGroup;

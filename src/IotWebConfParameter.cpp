@@ -358,7 +358,18 @@ bool TextParameter::renderHtml(bool dataArrived, WebRequestWrapper* webRequestWr
         dataArrived,
         webRequestWrapper->hasArg(this->getId()),
         webRequestWrapper->arg(this->getId()));
-    return outputCallback(content.c_str(), content.length());
+    size_t contentLen = content.length();
+    while (_lastSentPos < contentLen) {
+        size_t toSend = contentLen - _lastSentPos;
+        if (!outputCallback(content.c_str() + _lastSentPos, toSend)) {
+            // Buffer full, save progress
+            _lastSentPos += toSend;
+            return false;
+        }
+        _lastSentPos += toSend;
+    }
+    _lastSentPos = 0; // Reset after complete send
+    return true;
 }
 
 String TextParameter::renderHtml(
