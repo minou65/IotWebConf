@@ -116,6 +116,10 @@ bool ParameterGroup::renderHtml(bool dataArrived, WebRequestWrapper* webRequestW
 
     ConfigItem* current_ = _currentItem ? _currentItem : this->_firstItem;
 
+    if (_currentItem == nullptr){
+        _startTemplateSend = false;
+    }
+
     if (!_startTemplateSend && this->label != nullptr) {
 		//Serial.println("Sending start template");
         String content_ = getStartTemplate();
@@ -139,7 +143,7 @@ bool ParameterGroup::renderHtml(bool dataArrived, WebRequestWrapper* webRequestW
                 return completed_;
             }
         }
-        current_ = current_->_nextItem;
+        current_ = this->getNextItemOf(current_);
     }
 
     if (this->label != nullptr) {
@@ -353,23 +357,27 @@ void TextParameter::renderHtml(bool dataArrived, WebRequestWrapper* webRequestWr
   webRequestWrapper->sendContent(content);
 }
 
-bool TextParameter::renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper, HtmlChunkCallback outputCallback) {
-    String content = this->renderHtml(
-        dataArrived,
-        webRequestWrapper->hasArg(this->getId()),
-        webRequestWrapper->arg(this->getId()));
-    size_t contentLen = content.length();
-    while (_lastSentPos < contentLen) {
-        size_t toSend = contentLen - _lastSentPos;
-        if (!outputCallback(content.c_str() + _lastSentPos, toSend)) {
-            // Buffer full, save progress
-            _lastSentPos += toSend;
-            return false;
-        }
-        _lastSentPos += toSend;
+bool TextParameter::renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper, HtmlChunkCallback outputCallback){
+  String content = this->renderHtml(dataArrived, webRequestWrapper->hasArg(this->getId()), webRequestWrapper->arg(this->getId()));
+  size_t contentLen = content.length();
+
+  if (_lastSentPos < contentLen){
+    size_t toSend = contentLen - _lastSentPos;
+    bool success = outputCallback(content.c_str() + _lastSentPos, toSend);
+    if (!success){
+      // Buffer full, could not write anything - position stays the same!
+      return false;
     }
+    // Successfully written - update position
+    _lastSentPos += toSend;
+  }
+
+  if (_lastSentPos >= contentLen){
     _lastSentPos = 0; // Reset after complete send
     return true;
+  }
+
+  return false; // Not finished yet
 }
 
 String TextParameter::renderHtml(

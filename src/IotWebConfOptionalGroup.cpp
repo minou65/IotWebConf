@@ -102,11 +102,11 @@ void OptionalParameterGroup::renderHtml(bool dataArrived, WebRequestWrapper* web
 bool OptionalParameterGroup::renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper, HtmlChunkCallback outputCallback) {
     //Serial.println("OptionalParameterGroup::renderHtml called");
 
-    if (!dataArrived && _currentItem == nullptr && _startTemplateSend) {
+    ConfigItem* current_ = _currentItem ? _currentItem : this->_firstItem;
+
+    if (_currentItem == nullptr) {
         _startTemplateSend = false;
     }
-
-    ConfigItem* current_ = _currentItem ? _currentItem : this->_firstItem;
 
     if (!_startTemplateSend && this->label != nullptr) {
         //Serial.println("   outputting start template");
@@ -132,12 +132,12 @@ bool OptionalParameterGroup::renderHtml(bool dataArrived, WebRequestWrapper* web
 
    
     while (current_ != nullptr) {
-		Serial.print("   rendering item: "); Serial.println(current_->getId());
+		//Serial.print("   rendering item: "); Serial.println(current_->getId());
         if (current_->visible) {
             bool completed_ = current_->renderHtml(dataArrived, webRequestWrapper, outputCallback);
             if (!completed_) {
-                Serial.println("Rendering interrupted, saving state.");
-                Serial.print("    Completed: "); Serial.println(completed_ ? "true" : "false");
+                //Serial.println("Rendering interrupted, saving state.");
+                //Serial.print("    Completed: "); Serial.println(completed_ ? "true" : "false");
                 _currentItem = current_;
                 return completed_;
             }
