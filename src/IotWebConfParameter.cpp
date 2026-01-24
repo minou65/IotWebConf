@@ -111,56 +111,61 @@ void ParameterGroup::renderHtml(
     }
 }
 
-bool ParameterGroup::renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper, HtmlChunkCallback outputCallback) {
-	//Serial.println("ParameterGroup::renderHtml called");
+bool ParameterGroup::renderHtml(
+    bool dataArrived, WebRequestWrapper* webRequestWrapper,
+    HtmlChunkCallback outputCallback)
+{
+  ConfigItem* current_ = _currentItem ? _currentItem : this->_firstItem;
 
-    ConfigItem* current_ = _currentItem ? _currentItem : this->_firstItem;
+  if (_currentItem == nullptr)
+  {
+    _startTemplateSend = false;
+  }
 
-    if (_currentItem == nullptr){
-        _startTemplateSend = false;
+  if (!_startTemplateSend && this->label != nullptr)
+  {
+    String content_ = getStartTemplate();
+    content_.replace("{b}", this->label);
+    content_.replace("{i}", this->getId());
+    size_t written = outputCallback(content_.c_str(), content_.length());
+    if (written < content_.length())
+    {
+      // Not everything was written
+      return false;
     }
+    _startTemplateSend = true;
+  }
 
-    if (!_startTemplateSend && this->label != nullptr) {
-		//Serial.println("Sending start template");
-        String content_ = getStartTemplate();
-        content_.replace("{b}", this->label);
-        content_.replace("{i}", this->getId());
-        bool completed_ = outputCallback(content_.c_str(), content_.length());
-        if (!completed_) {
-            //Serial.println("Rendering interrupted during start template, saving state.");
-            return completed_;
-        }
-        _startTemplateSend = true;
+  while (current_ != nullptr)
+  {
+    if (current_->visible)
+    {
+      bool completed_ =
+          current_->renderHtml(dataArrived, webRequestWrapper, outputCallback);
+      if (!completed_)
+      {
+        _currentItem = current_;
+        return false;
+      }
     }
+    current_ = this->getNextItemOf(current_);
+  }
 
-    while (current_ != nullptr) {
-		//Serial.print("Rendering item: "); Serial.println(current_->getId());
-        if (current_->visible) {
-            bool completed_ = current_->renderHtml(dataArrived, webRequestWrapper, outputCallback);
-            if (!completed_) {
-				//Serial.println("Rendering interrupted, saving state.");
-                _currentItem = current_;
-                return completed_;
-            }
-        }
-        current_ = this->getNextItemOf(current_);
+  if (this->label != nullptr)
+  {
+    String content_ = getEndTemplate();
+    content_.replace("{b}", this->label);
+    content_.replace("{i}", this->getId());
+    size_t written = outputCallback(content_.c_str(), content_.length());
+    if (written < content_.length())
+    {
+      return false;
     }
+  }
 
-    if (this->label != nullptr) {
-        String content_ = getEndTemplate();
-        content_.replace("{b}", this->label);
-        content_.replace("{i}", this->getId());
-        bool completed_ = outputCallback(content_.c_str(), content_.length());
-        if (!completed_) {
-            //Serial.println("Rendering interrupted during end template, saving state.");
-            return completed_;
-		}
-    }
-
-     _currentItem = nullptr;
-	_startTemplateSend = false;
-	//Serial.println("ParameterGroup::renderHtml completed");
-	return true;
+  _currentItem = nullptr;
+  _startTemplateSend = false;
+  return true;
 }
 
 void ParameterGroup::update(WebRequestWrapper* webRequestWrapper)
@@ -361,23 +366,25 @@ bool TextParameter::renderHtml(bool dataArrived, WebRequestWrapper* webRequestWr
   String content = this->renderHtml(dataArrived, webRequestWrapper->hasArg(this->getId()), webRequestWrapper->arg(this->getId()));
   size_t contentLen = content.length();
 
-  if (_lastSentPos < contentLen){
-    size_t toSend = contentLen - _lastSentPos;
-    bool success = outputCallback(content.c_str() + _lastSentPos, toSend);
-    if (!success){
-      // Buffer full, could not write anything - position stays the same!
+  while (_lastSentPos < contentLen){
+    size_t remaining = contentLen - _lastSentPos;
+
+    // Try to write the remaining data
+    size_t written = outputCallback(content.c_str() + _lastSentPos, remaining);
+
+    if (written == 0){
+      // Callback could not write anything - buffer is full
+      // Don't update position, will retry on next call
       return false;
     }
-    // Successfully written - update position
-    _lastSentPos += toSend;
+
+    // Update position with what was actually written
+    _lastSentPos += written;
   }
 
-  if (_lastSentPos >= contentLen){
-    _lastSentPos = 0; // Reset after complete send
-    return true;
-  }
-
-  return false; // Not finished yet
+  // All data sent
+  _lastSentPos = 0; // Reset for next parameter
+  return true;
 }
 
 String TextParameter::renderHtml(

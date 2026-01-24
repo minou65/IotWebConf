@@ -99,68 +99,71 @@ void OptionalParameterGroup::renderHtml(bool dataArrived, WebRequestWrapper* web
     }
 }
 
-bool OptionalParameterGroup::renderHtml(bool dataArrived, WebRequestWrapper* webRequestWrapper, HtmlChunkCallback outputCallback) {
-    //Serial.println("OptionalParameterGroup::renderHtml called");
+bool OptionalParameterGroup::renderHtml(
+    bool dataArrived, WebRequestWrapper* webRequestWrapper,
+    HtmlChunkCallback outputCallback)
+{
+  ConfigItem* current_ = _currentItem ? _currentItem : this->_firstItem;
 
-    ConfigItem* current_ = _currentItem ? _currentItem : this->_firstItem;
-
-    if (_currentItem == nullptr) {
-        _startTemplateSend = false;
-    }
-
-    if (!_startTemplateSend && this->label != nullptr) {
-        //Serial.println("   outputting start template");
-        String content_ = getStartTemplate();
-        content_.replace("{b}", this->label);
-        content_.replace("{i}", this->getId());
-        content_.replace("{v}", this->_active ? "active" : "inactive");
-        if (this->_active) {
-            content_.replace("{cb}", "hide");
-            content_.replace("{cf}", "");
-        }
-        else {
-            content_.replace("{cb}", "");
-            content_.replace("{cf}", "hide");
-        }
-        bool completed_ = outputCallback(content_.c_str(), content_.length());
-        if (!completed_) {
-            //Serial.println("Rendering interrupted during start template, saving state.");
-            return completed_;
-		}
-		_startTemplateSend = true;
-    }
-
-   
-    while (current_ != nullptr) {
-		//Serial.print("   rendering item: "); Serial.println(current_->getId());
-        if (current_->visible) {
-            bool completed_ = current_->renderHtml(dataArrived, webRequestWrapper, outputCallback);
-            if (!completed_) {
-                //Serial.println("Rendering interrupted, saving state.");
-                //Serial.print("    Completed: "); Serial.println(completed_ ? "true" : "false");
-                _currentItem = current_;
-                return completed_;
-            }
-        }
-        current_ = this->getNextItemOf(current_);
-    }
-
-    if (this->label != nullptr) {
-		//Serial.println("   outputting end template");
-        String content_ = getEndTemplate();
-        content_.replace("{b}", this->label);
-        content_.replace("{i}", this->getId());
-        bool completed_ = outputCallback(content_.c_str(), content_.length());
-        if (!completed_) {
-            //Serial.println("Rendering interrupted during end template, saving state.");
-            return completed_;
-		}
-    }
-
-    _currentItem = nullptr;
+  if (_currentItem == nullptr)
+  {
     _startTemplateSend = false;
-    //Serial.println("OptionalParameterGroup::renderHtml completed");
-    return true;
+  }
+
+  if (!_startTemplateSend && this->label != nullptr)
+  {
+    String content_ = getStartTemplate();
+    content_.replace("{b}", this->label);
+    content_.replace("{i}", this->getId());
+    content_.replace("{v}", this->_active ? "active" : "inactive");
+    if (this->_active)
+    {
+      content_.replace("{cb}", "hide");
+      content_.replace("{cf}", "");
+    }
+    else
+    {
+      content_.replace("{cb}", "");
+      content_.replace("{cf}", "hide");
+    }
+    size_t written = outputCallback(content_.c_str(), content_.length());
+    if (written < content_.length())
+    {
+      return false;
+    }
+    _startTemplateSend = true;
+  }
+
+  while (current_ != nullptr)
+  {
+    if (current_->visible)
+    {
+      bool completed_ =
+          current_->renderHtml(dataArrived, webRequestWrapper, outputCallback);
+      if (!completed_)
+      {
+        _currentItem = current_;
+        return false;
+      }
+    }
+    current_ = this->getNextItemOf(current_);
+  }
+
+  if (this->label != nullptr)
+  {
+    String content_ = getEndTemplate();
+    content_.replace("{b}", this->label);
+    content_.replace("{i}", this->getId());
+    size_t written = outputCallback(content_.c_str(), content_.length());
+    if (written < content_.length())
+    {
+      return false;
+    }
+  }
+
+  _currentItem = nullptr;
+  _startTemplateSend = false;
+  return true;
 }
 
 void OptionalParameterGroup::update(WebRequestWrapper* webRequestWrapper)

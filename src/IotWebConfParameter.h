@@ -38,7 +38,7 @@ const char IOTWEBCONF_HTML_FORM_SELECT_PARAM[] PROGMEM =
 const char IOTWEBCONF_HTML_FORM_OPTION[] PROGMEM =
   "<option value='{v}'{s}>{n}</option>\n";
 
-typedef std::function<bool(const char* data, size_t len)> HtmlChunkCallback;
+typedef std::function<size_t(const char* data, size_t len)> HtmlChunkCallback;
 
 namespace iotwebconf
 {
