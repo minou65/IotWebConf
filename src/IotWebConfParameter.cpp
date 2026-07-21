@@ -704,4 +704,207 @@ size_t PrefixStreamWrapper::checkNewLine()
   return 0;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+// Static day names initialization (English by default)
+// Array index matches day of week: 0=Sunday, 1=Monday, ..., 6=Saturday
+const char* DayParameter::_dayNamesShort[7] = {"Sun", "Mon", "Tue", "Wed",
+                                               "Thu", "Fri", "Sat"};
+
+bool DayParameter::isDaySelected(int dayOfWeek) const
+{
+  if (dayOfWeek < 0 || dayOfWeek > 6)
+    return false;
+
+  String value = String(valueBuffer);
+  String dayStr = String(dayOfWeek);
+
+  // Check if day is in comma-separated list
+  int startPos = 0;
+  while (startPos < value.length())
+  {
+    int commaPos = value.indexOf(',', startPos);
+    if (commaPos == -1)
+      commaPos = value.length();
+
+    String token = value.substring(startPos, commaPos);
+    token.trim();
+    if (token == dayStr)
+      return true;
+
+    startPos = commaPos + 1;
+  }
+  return false;
+}
+
+int DayParameter::getSelectedDays(int* selectedDays) const
+{
+  int count = 0;
+  for (int day = 0; day <= 6; day++)
+  {
+    if (isDaySelected(day))
+    {
+      selectedDays[count++] = day;
+    }
+  }
+  return count;
+}
+
+void DayParameter::setSelectedDays(const int* selectedDays, int count)
+{
+  this->valueBuffer[0] = '\0';
+
+  for (int i = 0; i < count && i < 7; i++)
+  {
+    if (i > 0)
+      strcat(this->valueBuffer, ",");
+    char dayStr[4];
+    itoa(selectedDays[i], dayStr, 10);
+    strncat(
+        this->valueBuffer, dayStr,
+        this->getLength() - strlen(this->valueBuffer) - 1);
+  }
+  this->valueBuffer[this->getLength()] = '\0';
+}
+
+String DayParameter::renderHtml(
+    bool dataArrived, bool hasValueFromPost, String valueFromPost)
+{
+  String currentValue =
+      hasValueFromPost ? valueFromPost : String(this->valueBuffer);
+
+  // Parse currently selected days
+  bool selectedDays[7] = {false};
+  int startPos = 0;
+  while (startPos < currentValue.length())
+  {
+    int commaPos = currentValue.indexOf(',', startPos);
+    if (commaPos == -1)
+      commaPos = currentValue.length();
+
+    String token = currentValue.substring(startPos, commaPos);
+    token.trim();
+    int dayNum = token.toInt();
+    if (dayNum >= 0 && dayNum <= 6)
+    {
+      selectedDays[dayNum] = true;
+    }
+
+    startPos = commaPos + 1;
+  }
+
+  // Build HTML
+  String html = "<div class='";
+  html += (this->errorMessage == nullptr ? "" : "de");
+  html += "'><label>";
+  html += this->label;
+  html += "</label><div style='display:flex; gap:10px; flex-wrap:wrap;'>";
+
+  const char* inputType = _multiSelect ? "checkbox" : "radio";
+
+  for (int i = 0; i < 7; i++)
+  {
+    int dayNumber = i;
+    String dayParamId = getDayParamId(dayNumber);
+
+    html += "<label style='display:flex; align-items:center; gap:5px;'>";
+    html += "<input type='";
+    html += inputType;
+    html += "' name='";
+    html += dayParamId; // Unique name per day for checkboxes
+    html += "' id='";
+    html += dayParamId;
+    html += "' value='1'"; // Always '1' if checked
+
+    if (selectedDays[i])
+    {
+      html += " checked='checked'";
+    }
+
+    // For radio buttons, group them together
+    if (!_multiSelect)
+    {
+      html += " onchange=\"document.querySelectorAll('input[name^=\\\"";
+      html += this->getId();
+      html += "_\\\"]').forEach(e=>e.checked=false);this.checked=true;\"";
+    }
+
+    html += "/> ";
+    html += _dayNamesShort[i];
+    html += "</label>";
+  }
+
+  html += "</div>";
+
+  // Hidden field to store the combined value
+  html += "<input type='hidden' id='";
+  html += this->getId();
+  html += "' name='";
+  html += this->getId();
+  html += "' value='";
+  html += currentValue;
+  html += "'/>";
+
+  // JavaScript to update hidden field on change
+  html += "<script>(function(){";
+  html += "const updateDays=()=>{";
+  html += "let days=[];";
+  html += "for(let i=0;i<=6;i++){";
+  html += "if(document.getElementById('";
+  html += this->getId();
+  html += "_'+i)?.checked)days.push(i);";
+  html += "}";
+  html += "document.getElementById('";
+  html += this->getId();
+  html += "').value=days.join(',');";
+  html += "};";
+  html += "for(let i=0;i<=6;i++){";
+  html += "const el=document.getElementById('";
+  html += this->getId();
+  html += "_'+i);";
+  html += "if(el)el.addEventListener('change',updateDays);";
+  html += "}";
+  html += "})();</script>";
+
+  if (this->errorMessage != nullptr)
+  {
+    html += "<div class='em'>";
+    html += this->errorMessage;
+    html += "</div>";
+  }
+
+  html += "</div>";
+
+  return html;
+}
+
+void DayParameter::update(WebRequestWrapper* webRequestWrapper)
+{
+  if (!this->visible)
+  {
+    return;
+  }
+
+  // The hidden field contains the comma-separated values
+  if (webRequestWrapper->hasArg(this->getId()))
+  {
+    String newValue = webRequestWrapper->arg(this->getId());
+    strncpy(this->valueBuffer, newValue.c_str(), this->getLength());
+    this->valueBuffer[this->getLength()] = '\0';
+  }
+  else
+  {
+    // No value submitted (shouldn't happen with hidden field)
+    this->valueBuffer[0] = '\0';
+  }
+}
+
+void DayParameter::update(String newValue)
+{
+  strncpy(this->valueBuffer, newValue.c_str(), this->getLength());
+  this->valueBuffer[this->getLength()] = '\0';
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 } // end namespace

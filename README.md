@@ -244,6 +244,54 @@ DateParameter dateParam(
 - ISO date format (YYYY-MM-DD)
 - Calendar popup interface
 
+#### DayParameter
+Multi-select weekday picker with checkboxes.
+
+```cpp
+// 1. Default English (all instances)
+char workDaysBuffer[32] = "1,2,3,4,5";
+DayParameter workDays("Working Days", "workdays", workDaysBuffer, 32);
+
+char weekendBuffer[32] = "6,7";
+DayParameter weekend("Weekend", "weekend", weekendBuffer, 32);
+
+// 2. Switch to German (applies to ALL DayParameter instances)
+const char* germanDaysShort[7] = {"Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"};
+DayParameter::setDayNamesShort(germanDaysShort);
+
+// Now both workDays AND weekend display German names
+
+// 3. Single-select mode
+char backupDayBuffer[8] = "1";
+DayParameter backupDay("Backup Day", "backupday", backupDayBuffer, 8, "1", true);
+
+// 4. Runtime query and modification
+// Check if a specific day is selected
+if (workDays.isDaySelected(1)) {  // Monday
+    Serial.println("Monday is selected");
+}
+
+// Get all selected days
+int selectedDays[7];
+int count = workDays.getSelectedDays(selectedDays);
+for (int i = 0; i < count; i++) {
+    Serial.print("Selected day: ");
+    Serial.println(selectedDays[i]);  // 1-7
+}
+
+// Set selected days programmatically
+int newDays[] = {1, 3, 5};  // Monday, Wednesday, Friday
+workDays.setSelectedDays(newDays, 3);
+```
+
+**Features:**
+- Multiple weekday selection with checkboxes
+- Static day names (applies to all instances)
+- Customizable day names via `setDayNamesShort()`
+- Optional single-select mode (radio buttons)
+- Days stored as comma-separated numbers (1=Mon, 7=Sun)
+- Default English labels (Mon-Sun)
+
 #### TimeParameter
 HTML5 time picker input.
 

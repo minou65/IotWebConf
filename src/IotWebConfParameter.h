@@ -53,7 +53,7 @@ class ConfigItem
 {
 public:
   bool visible = true;
-  const char* getId() { return this->_id; }
+  const char* getId() const { return this->_id; }
 
   /**
    * Calculate the size of bytes should be stored in the EEPROM.
@@ -497,6 +497,95 @@ protected:
 private:
   friend class IotWebConf;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Day parameter renders checkboxes or radio buttons for weekday selection.
+ * The value is stored as a comma-separated string (e.g., "1,3,5" for
+ * Mon,Wed,Fri).
+ */
+class DayParameter : public TextParameter
+{
+public:
+  /**
+   * Create a day parameter for the config portal.
+   *
+   * @label - Displayable label at the config portal.
+   * @id - Identifier used for HTTP queries and as configuration key.
+   * @valueBuffer - Configuration value will be loaded to this buffer.
+   * @length - The buffer length (recommended: 32).
+   * @multiSelect - If true, renders checkboxes (multi-select). If false,
+   * renders radio buttons (single-select).
+   * @defaultValue - Default value (e.g., "1,2,3,4,5" for Mon-Fri).
+   */
+  DayParameter(
+      const char* label, const char* id, char* valueBuffer, int length,
+      bool multiSelect = true, const char* defaultValue = nullptr)
+      : iotwebconf::TextParameter(
+            label, id, valueBuffer, length, defaultValue, nullptr, nullptr),
+        _multiSelect(multiSelect)
+  {
+  }
+
+  /**
+   * Set custom day names (short names used in rendering) - applies to ALL
+   * instances.
+   * @dayNamesShort - Array of 7 short strings (Mon to Sun).
+   * Example: const char* germanDaysShort[7] = {"Mo", "Di", "Mi", "Do", "Fr",
+   * "Sa", "So"}; DayParameter::setDayNamesShort(germanDaysShort);
+   */
+  static void setDayNamesShort(const char* dayNamesShort[7])
+  {
+    for (int i = 0; i < 7; i++)
+    {
+      _dayNamesShort[i] = dayNamesShort[i];
+    }
+  }
+
+  /**
+   * Check if a specific day is selected.
+   * @dayOfWeek - Day of week (0=Sunday, 1=Monday, ..., 6=Saturday)
+   * @return true if the day is selected
+   */
+  bool isDaySelected(int dayOfWeek) const;
+
+  /**
+   * Get all selected days as an array.
+   * @selectedDays - Output array (must be at least size 7)
+   * @return Number of selected days (day values: 0=Sunday, 1=Monday, ...,
+   * 6=Saturday)
+   */
+  int getSelectedDays(int* selectedDays) const;
+
+  /**
+   * Set which days are selected.
+   * @selectedDays - Array of day numbers (0=Sunday, 1=Monday, ..., 6=Saturday)
+   * @count - Number of days in array
+   */
+  void setSelectedDays(const int* selectedDays, int count);
+
+protected:
+  virtual String renderHtml(
+      bool dataArrived, bool hasValueFromPost, String valueFromPost) override;
+  virtual void update(WebRequestWrapper* webRequestWrapper) override;
+  virtual void update(String newValue) override;
+
+private:
+  friend class IotWebConf;
+  bool _multiSelect;
+
+  // Helper to get child parameter ID for a specific day
+  String getDayParamId(int dayNumber) const
+  {
+    return String(this->getId()) + "_" + String(dayNumber);
+  }
+
+  // Day names (static - shared by all instances)
+  static const char* _dayNamesShort[7];
+};
+
+///////////////////////////////////////////////////////////////////////////////
 
 /**
  * This class is here just to make some nice indents on debug output
