@@ -1,5 +1,23 @@
 # IotWebConf [![Build Status](https://github.com/prampec/IotWebConf/workflows/PlatformIO%20CI/badge.svg?branch=master)](https://github.com/prampec/IotWebConf/actions/workflows/test.platformio.yml)
 
+## Table of contents
+- [Upgrading to v3.0.0](#upgrading-to-v300)
+- [Summary](#summary)
+- [Highlights](#highlights)
+- [How it works](#how-it-works)
+- [Use cases](#use-cases)
+- [User notes](#user-notes)
+- [IotWebConf vs. WiFiManager](#iotwebconf-vs-wifimanager)
+- [Security aspects](#security-aspects)
+- [Compatibility](#compatibility)
+- [ESPAsyncWebServer support](#espasyncwebserver-support)
+- [Tab support](#tab-support)
+- [Input parameters](#input-parameters)
+- [Customizing and extending functionality](#customizing-and-extending-functionality)
+- [TODO / Feature requests](#todo--feature-requests)
+- [Known issues](#known-issues)
+- [Credits](#credits)
+
 ## Upgrading to v3.0.0
 Lately version 3.0.0 is released. This release is not backward compatible with
 older versions, and some modification have to be done on existing codes.
@@ -88,6 +106,46 @@ IotWebConf is primary built for ESP8266. But meanwhile it was discovered, that t
 to ESP32. There are two major problems.
   - ESP8266 uses specific naming for it's classes (e.g. ESP8266WebServer). However, ESP32 uses a more generic naming (e.g. WebServer). The idea here is to use the generic naming hoping that ESP8266 will adopt these "standards" sooner or later.
   - ESP32 does not provide an HTTPUpdateServer implementation. So in this project we have implemented one. Whenever ESP32 provides an official HTTPUpdateServer, this local implementation will be removed.
+
+## ESPAsyncWebServer support
+This library targets the synchronous web server implementations used by ESP8266/ESP32 Arduino cores.
+
+If your project is based on **ESPAsyncWebServer**, please use the dedicated async extension:
+  - [minou65/IotWebConfAsync](https://github.com/minou65/IotWebConfAsync)
+
+That project provides IotWebConf functionality adapted to async server handling and is the recommended way to use IotWebConf concepts with ESPAsyncWebServer.
+
+## Tab support
+IotWebConf also includes tab-based configuration page support via `IotWebConfTab`.
+With tabs you can split large configuration forms into smaller, easier-to-navigate sections.
+
+### Basic usage
+1. Include `IotWebConfTab.h` instead of `IotWebConf.h`.
+1. Create your `IotWebConfTab` instance.
+1. Assign each `ParameterGroup` to a tab name.
+
+```cpp
+#include <IotWebConfTab.h>
+
+DNSServer dnsServer;
+WebServer server(80);
+
+IotWebConfTab iotWebConf("MyThing", &dnsServer, &server, "initial123");
+
+ParameterGroup networkGroup("network", "Network");
+ParameterGroup appGroup("app", "Application");
+
+// Each group is rendered on the tab specified by name.
+iotWebConf.addParameterGroup(&networkGroup, "Network");
+iotWebConf.addParameterGroup(&appGroup, "Application");
+```
+
+### Optional tab configuration
+- `setSystemTabName("System")` to customize the system tab title.
+- `setSystemTabPosition(...)` to place the system tab first, last, or at a specific index.
+- `setContainerWidth(minWidth, maxWidth)` to control layout width.
+
+If you call `addParameterGroup(group)` without a tab name, the group is added to a default tab named `Configuration`.
 
 ## Input parameters
 
