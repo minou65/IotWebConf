@@ -345,6 +345,13 @@ protected:
   virtual String renderHtml(
     bool dataArrived, bool hasValueFromPost, String valueFromPost) override;
 
+    virtual String getHtmlTemplate() override {
+        return F("<div class='{s}'><label for='{i}'>{b}</label><input type='{t}' "
+                 "id='{i}' "
+                 "name='{i}' placeholder='{p}' value='{v}' {c}/>"
+                 "<div class='em'>{e}</div></div>\n");
+      }
+
 private:
   friend class IotWebConf;
 };
