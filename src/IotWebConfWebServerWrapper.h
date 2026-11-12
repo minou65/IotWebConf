@@ -18,29 +18,32 @@
 namespace iotwebconf
 {
 
-class WebRequestWrapper
-{
+class WebRequestWrapper {
 public:
-  virtual const String hostHeader() const;
-  virtual IPAddress localIP();
-  virtual uint16_t localPort();
-  virtual const String uri() const;
-  virtual bool authenticate(const char * username, const char * password);
-  virtual void requestAuthentication();
-  virtual bool hasArg(const String& name);
-  virtual String arg(const String name);
-  virtual void sendHeader(const String& name, const String& value, bool first = false);
-  virtual void setContentLength(const size_t contentLength);
-  virtual void send(int code, const char* content_type = nullptr, const String& content = String(""));
-  virtual void sendContent(const String& content);
-  virtual void stop();
+  virtual ~WebRequestWrapper() = default;
+
+  virtual const String hostHeader() const = 0;
+  virtual IPAddress localIP() = 0;
+  virtual uint16_t localPort() = 0;
+  virtual const String uri() const = 0;
+  virtual bool authenticate(const char* username, const char* password) = 0;
+  virtual void requestAuthentication() = 0;
+  virtual bool hasArg(const String& name) = 0;
+  virtual String arg(const String name) = 0;
+  virtual void sendHeader(const String& name, const String& value, bool first = false) = 0;
+  virtual void setContentLength(size_t contentLength) = 0;
+  virtual void send(int code, const char* content_type = nullptr,
+                    const String& content = String("")) = 0;
+  virtual void sendContent(const String& content) = 0;
+  virtual void stop() = 0;
 };
 
-class WebServerWrapper
-{
+class WebServerWrapper{
 public:
-  virtual void handleClient();
-  virtual void begin();
+  virtual ~WebServerWrapper() = default;
+
+  virtual void handleClient() = 0;
+  virtual void begin() = 0;
 };
 
 } // end namespace
